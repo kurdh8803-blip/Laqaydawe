@@ -1,0 +1,23 @@
+{
+  "name": "niulai-game",
+  "version": "1.0.0",
+  "description": "🐂 牛来格斗 NIU LAI FIGHT —— یارییەکی شەڕکردنی 3D بە Three.js دروستکراوە: یاریی دوو کەسی ناوخۆیی + یاری لە تۆڕی ناوخۆیی (LAN)، 7 کاراکتەر، 3 مەیدانی شەڕ، سیستەمی کۆمبۆ و هێرشە تایبەتەکان. یارییەکی شەڕکردنی 3D بۆ دوو کەس بە Three.js دروستکراوە: یاریی ناوخۆیی و یاریی LAN، 7 شەڕکەر، 3 مەیدان، سیستەمی کۆمبۆ و هێرشی بەهێز.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "threejs", "webgl", "fighting-game", "3d-game", "browser-game",
+    "multiplayer", "websocket", "lan-multiplayer", "local-multiplayer",
+    "arcade", "combo-system", "game", "niulai", "牛来", "格斗游戏"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liyupi/niulai-game.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.170.0",
+    "ws": "^8.18.0"
+  }
+}

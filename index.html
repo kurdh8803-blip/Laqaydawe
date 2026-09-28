@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title> · GREEY FIGHT</title>
+<style>
+  :root {
+    --gold: #f5b53a;
+    --orange: #e8762c;
+    --deep: #4a2a52;
+    --cream: #fff3dc;
+    --hp-green: #7ed321;
+    --hp-red: #e8432c;
+    --meter-blue: #38b6ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a0f24; }
+  body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+  canvas { display: block; }
+
+  /* ---------- 通用覆盖层 ---------- */
+  .screen {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .hidden { display: none !important; }
+
+  /* ---------- 标题界面 ---------- */
+  #screen-title {
+    background: radial-gradient(ellipse at 50% 30%, rgba(90,40,90,.25), rgba(20,10,30,.88) 75%);
+  }
+  .title-logo {
+    font-size: clamp(56px, 10vw, 120px); font-weight: 900; letter-spacing: .06em;
+    color: var(--cream);
+    text-shadow: 0 0 30px rgba(245,181,58,.8), 0 6px 0 var(--orange), 0 10px 24px rgba(0,0,0,.6);
+    transform: skewX(-6deg);
+  }
+  .title-sub {
+    margin-top: 8px; font-size: clamp(14px, 2vw, 22px); color: var(--gold);
+    letter-spacing: .5em; text-indent: .5em; font-weight: 700; opacity: .9;
+  }
+  .menu { margin-top: 64px; display: flex; flex-direction: column; gap: 18px; align-items: center; }
+  .menu-btn {
+    min-width: 300px; padding: 14px 40px; font-size: 24px; font-weight: 800; color: var(--cream);
+    background: linear-gradient(180deg, rgba(232,118,44,.35), rgba(74,42,82,.55));
+    border: 2px solid var(--gold); border-radius: 12px; cursor: pointer;
+    letter-spacing: .2em; transition: all .15s;
+    text-shadow: 0 2px 4px rgba(0,0,0,.5);
+  }
+  .menu-btn:hover { transform: scale(1.06); background: linear-gradient(180deg, rgba(245,181,58,.6), rgba(232,118,44,.5)); box-shadow: 0 0 24px rgba(245,181,58,.5); }
+  .title-tip { position: absolute; bottom: 26px; color: rgba(255,243,220,.55); font-size: 13px; letter-spacing: .1em; }
+
+  /* ---------- 选人界面 ---------- */
+  #screen-select {
+    background: linear-gradient(180deg, rgba(30,14,40,.92), rgba(60,26,60,.86));
+  }
+  .select-head { font-size: 44px; font-weight: 900; color: var(--cream); letter-spacing: .3em; text-indent: .3em;
+    text-shadow: 0 0 20px rgba(245,181,58,.7), 0 4px 0 var(--orange); margin-bottom: 6px; }
+  .select-sub { color: var(--gold); font-size: 15px; margin-bottom: 26px; letter-spacing: .15em; }
+  .char-grid { display: flex; flex-wrap: wrap; gap: 18px 20px; justify-content: center; max-width: 900px; }
+  .char-card {
+    width: 190px; padding: 16px 12px 14px; border-radius: 16px; cursor: pointer; position: relative;
+    background: linear-gradient(180deg, rgba(255,243,220,.10), rgba(255,243,220,.03));
+    border: 2px solid rgba(245,181,58,.35); transition: transform .12s ease-out, border-color .12s, box-shadow .12s;
+    text-align: center; will-change: transform;
+  }
+  .char-card:hover { transform: translateY(-6px); }
+  .char-card.p1-cursor { border-color: #4fc3ff; box-shadow: 0 0 26px rgba(79,195,255,.65); }
+  .char-card.p2-cursor { border-color: #ff5470; box-shadow: 0 0 26px rgba(255,84,112,.65); }
+  .char-card.p1-cursor.p2-cursor { border-color: #b06bff; box-shadow: 0 0 26px rgba(176,107,255,.6); }
+  .char-card canvas { width: 150px; height: 150px; margin: 0 auto; display: block; }
+  .char-name { font-size: 24px; font-weight: 900; color: var(--cream); margin-top: 6px; }
+  .char-title { font-size: 13px; color: var(--gold); letter-spacing: .2em; margin-top: 2px; }
+  .stat-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; justify-content: center; }
+  .stat-label { font-size: 11px; color: rgba(255,243,220,.6); width: 30px; text-align: right; }
+  .stat-dots { display: flex; gap: 3px; }
+  .stat-dot { width: 12px; height: 7px; border-radius: 2px; background: rgba(255,255,255,.14); }
+  .stat-dot.on { background: var(--gold); }
+  .pick-tag { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); padding: 3px 14px;
+    border-radius: 999px; font-size: 13px; font-weight: 800; color: #1a0f24; }
+  .pick-tag.t1 { background: #4fc3ff; }
+  .pick-tag.t2 { background: #ff5470; margin-top: -14px; top: 8px; }
+  .select-foot { margin-top: 30px; color: rgba(255,243,220,.65); font-size: 15px; letter-spacing: .1em; }
+  .select-foot b { color: var(--gold); }
+  #btn-select-back { position: fixed; top: 22px; left: 26px; padding: 8px 22px; font-size: 16px;
+    color: var(--cream); background: rgba(0,0,0,.3); border: 1px solid rgba(245,181,58,.5); border-radius: 8px; cursor: pointer; }
+  #btn-select-back:hover { background: rgba(245,181,58,.25); }
+
+  /* ---------- 战斗 HUD ---------- */
+  #hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+  .hp-wrap { position: absolute; top: 22px; width: 38%; }
+  .hp-wrap.left { left: 24px; } .hp-wrap.right { right: 24px; transform: scaleX(-1); }
+  .hp-name { font-size: 20px; font-weight: 900; color: var(--cream); text-shadow: 0 2px 6px rgba(0,0,0,.8);
+    margin-bottom: 4px; letter-spacing: .1em; }
+  .hp-wrap.right .hp-name { transform: scaleX(-1); text-align: right; }
+  .hp-bar { height: 26px; background: rgba(0,0,0,.55); border: 2px solid var(--cream); border-radius: 6px;
+    overflow: hidden; position: relative; box-shadow: 0 3px 10px rgba(0,0,0,.4); }
+  .hp-ghost { position: absolute; inset: 0; background: #ffd76b; transform-origin: left; }
+  .hp-fill { position: absolute; inset: 0; background: linear-gradient(180deg, #a8e63a, #5fae14); transform-origin: left; }
+  .hp-wrap.right .hp-ghost, .hp-wrap.right .hp-fill { transform-origin: right; }
+  .meter-wrap { margin-top: 8px; height: 14px; background: rgba(0,0,0,.55); border: 2px solid rgba(255,243,220,.8);
+    border-radius: 5px; overflow: hidden; position: relative; }
+  .meter-fill { position: absolute; inset: 0; background: linear-gradient(90deg, #2ea8ff, #7fe3ff); transform-origin: left; }
+  .hp-wrap.right .meter-fill { transform-origin: right; }
+  .meter-full { position: absolute; inset: 0; background: linear-gradient(90deg, #ffd76b, #ff9a3c, #ffd76b);
+    background-size: 200% 100%; animation: meterGlow .6s linear infinite; }
+  @keyframes meterGlow { to { background-position: -200% 0; } }
+  .round-pips { position: absolute; top: 26px; display: flex; gap: 8px; }
+  .round-pips.left { left: calc(24px + 38% + 90px); } .round-pips.right { right: calc(24px + 38% + 90px); }
+  .pip { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--cream); background: rgba(0,0,0,.4); }
+  .pip.won { background: var(--gold); box-shadow: 0 0 12px rgba(245,181,58,.9); }
+  #timer {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    font-size: 52px; font-weight: 900; color: var(--cream); min-width: 110px; text-align: center;
+    text-shadow: 0 0 18px rgba(245,181,58,.8), 0 4px 0 rgba(0,0,0,.45); font-variant-numeric: tabular-nums;
+  }
+  .combo-pop { position: absolute; top: 32%; font-size: 40px; font-weight: 900; color: var(--gold);
+    text-shadow: 0 0 16px rgba(232,118,44,.9), 0 3px 0 #7a2d12; opacity: 0; letter-spacing: .08em; }
+  .combo-pop.left { left: 8%; } .combo-pop.right { right: 8%; }
+  .combo-pop.show { animation: comboPop .8s ease-out; }
+  @keyframes comboPop { 0% { opacity: 0; transform: scale(1.8); } 15% { opacity: 1; transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* ---------- 中央公告 ---------- */
+  #announce {
+    position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  #announce-text {
+    font-size: clamp(70px, 14vw, 190px); font-weight: 900; color: var(--cream); letter-spacing: .05em;
+    text-shadow: 0 0 40px rgba(245,181,58,1), 0 8px 0 var(--orange), 0 16px 40px rgba(0,0,0,.7);
+    transform: skewX(-8deg) scale(0); opacity: 0;
+  }
+  #announce-text.slam { animation: slam .55s cubic-bezier(.2, 2.4, .4, 1) forwards; }
+  @keyframes slam { 0% { transform: skewX(-8deg) scale(3.2); opacity: 0; } 60% { transform: skewX(-8deg) scale(.95); opacity: 1; } 100% { transform: skewX(-8deg) scale(1); opacity: 1; } }
+
+  /* ---------- 结算界面 ---------- */
+  #screen-result { background: rgba(18, 8, 26, .82); backdrop-filter: blur(4px); }
+  .result-title { font-size: 84px; font-weight: 900; color: var(--gold); letter-spacing: .2em; text-indent: .2em;
+    text-shadow: 0 0 34px rgba(245,181,58,.9), 0 6px 0 #7a2d12; }
+  .result-winner { margin-top: 18px; font-size: 34px; font-weight: 800; color: var(--cream); letter-spacing: .12em; }
+  .result-score { margin-top: 8px; font-size: 22px; color: rgba(255,243,220,.75); letter-spacing: .3em; }
+  .result-btns { margin-top: 46px; display: flex; gap: 24px; }
+  .result-btn { padding: 13px 42px; font-size: 21px; font-weight: 800; color: var(--cream); letter-spacing: .15em;
+    background: linear-gradient(180deg, rgba(232,118,44,.4), rgba(74,42,82,.6));
+    border: 2px solid var(--gold); border-radius: 12px; cursor: pointer; transition: all .15s; }
+  .result-btn:hover { transform: scale(1.07); box-shadow: 0 0 22px rgba(245,181,58,.55); }
+
+  /* ---------- 联机面板 ---------- */
+  #net-panel {
+    position: fixed; z-index: 40; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(18,8,26,.7);
+  }
+  .net-box { width: 460px; padding: 34px 38px; border-radius: 18px; text-align: center;
+    background: linear-gradient(180deg, rgba(60,26,60,.95), rgba(30,14,40,.95));
+    border: 2px solid var(--gold); box-shadow: 0 0 50px rgba(0,0,0,.6); }
+  .net-box h3 { font-size: 26px; color: var(--cream); letter-spacing: .2em; margin-bottom: 18px; }
+  .net-status { font-size: 16px; color: var(--gold); min-height: 24px; margin: 12px 0 18px; letter-spacing: .08em; }
+  .net-box .menu-btn { min-width: 260px; font-size: 19px; padding: 11px 20px; }
+  .net-cancel { margin-top: 18px; color: rgba(255,243,220,.6); font-size: 14px; cursor: pointer; text-decoration: underline; }
+
+  /* ---------- 战斗中按键提示 ---------- */
+  #ctrl-hint {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 9;
+    display: flex; gap: 40px; color: rgba(255,243,220,.5); font-size: 12.5px; letter-spacing: .05em;
+    pointer-events: none;
+  }
+  #ctrl-hint b { color: rgba(245,181,58,.85); }
+</style>
+</head>
+<body>
+  <!-- 战斗 HUD -->
+  <div id="hud" class="hidden">
+    <div class="hp-wrap left">
+      <div class="hp-name" id="p1-name">P1</div>
+      <div class="hp-bar"><div class="hp-ghost" id="p1-ghost"></div><div class="hp-fill" id="p1-fill"></div></div>
+      <div class="meter-wrap"><div class="meter-fill" id="p1-meter"></div><div class="meter-full hidden" id="p1-meter-glow"></div></div>
+    </div>
+    <div class="round-pips left" id="p1-pips"><div class="pip"></div><div class="pip"></div></div>
+    <div id="timer">60</div>
+    <div class="round-pips right" id="p2-pips"><div class="pip"></div><div class="pip"></div></div>
+    <div class="hp-wrap right">
+      <div class="hp-name" id="p2-name">P2</div>
+      <div class="hp-bar"><div class="hp-ghost" id="p2-ghost"></div><div class="hp-fill" id="p2-fill"></div></div>
+      <div class="meter-wrap"><div class="meter-fill" id="p2-meter"></div><div class="meter-full hidden" id="p2-meter-glow"></div></div>
+    </div>
+    <div class="combo-pop left" id="combo-p1"></div>
+    <div class="combo-pop right" id="combo-p2"></div>
+  </div>
+  <div id="ctrl-hint" class="hidden">
+    <span><b>P1</b>：A/D 移动 · W 跳 · S 防御 · 空格 轻拳 · LShift 重拳 · E 轻踢 · Q 重踢 · F 必杀 · 双击A/D 闪避</span>
+    <span><b>P2</b>：←/→ 移动 · ↑ 跳 · ↓ 防御 · 小键盘1/数字1 轻拳 · 2 重拳 · 4 轻踢 · 5 重踢 · 3 必杀 · 双击←/→ 闪避</span>
+  </div>
+
+  <!-- 中央公告 -->
+  <div id="announce"><div id="announce-text"></div></div>
+
+  <!-- 标题界面 -->
+  <div id="screen-title" class="screen">
+    <div class="title-logo">牛来格斗</div>
+    <div class="title-sub">NIU LAI FIGHT</div>
+    <div class="menu">
+      <button class="menu-btn" id="btn-local">本地双人对战</button>
+      <button class="menu-btn" id="btn-vsai">人机练习</button>
+      <button class="menu-btn" id="btn-lan">局域网联机对战</button>
+    </div>
+    <div class="title-tip">致敬《拳皇》《奥特曼格斗进化》 · 改编自 2026 年动画电影《牛来》 · 草原 · 勇气 · 守护</div>
+  </div>
+
+  <!-- 选人界面 -->
+  <div id="screen-select" class="screen hidden">
+    <button id="btn-select-back">← 返回</button>
+    <div class="select-head">选择你的斗士</div>
+    <div class="select-sub" id="select-sub">P1 与 P2 分别移动光标，按轻拳键确认</div>
+    <div class="char-grid" id="char-grid"></div>
+    <div class="select-foot" id="select-foot">P1：<b>A/D</b> 移动 · <b>空格</b> 确认　　P2：<b>←/→</b> 移动 · <b>小键盘1 / 数字1</b> 确认</div>
+  </div>
+
+  <!-- 结算界面 -->
+  <div id="screen-result" class="screen hidden">
+    <div class="result-title">VICTORY</div>
+    <div class="result-winner" id="result-winner">P1 牛来 获胜！</div>
+    <div class="result-score" id="result-score">2 - 0</div>
+    <div class="result-btns">
+      <button class="result-btn" id="btn-rematch">再来一局</button>
+      <button class="result-btn" id="btn-to-menu">回到主菜单</button>
+    </div>
+  </div>
+
+  <!-- 联机面板 -->
+  <div id="net-panel" class="hidden">
+    <div class="net-box">
+      <h3>局域网联机</h3>
+      <div class="net-status" id="net-status">正在连接服务器…</div>
+      <button class="menu-btn" id="btn-net-host">创建房间（主机）</button>
+      <div style="height:14px"></div>
+      <button class="menu-btn" id="btn-net-join">快速加入（自动匹配）</button>
+      <div class="net-cancel" id="btn-net-cancel">取消</div>
+    </div>
+  </div>
+
+  <script>
+    // 全局错误捕获（调试用）
+    window.__errors = [];
+    window.addEventListener('error', e => window.__errors.push(String(e.message || e) + ' @' + (e.filename||'') + ':' + (e.lineno||'')));
+    window.addEventListener('unhandledrejection', e => window.__errors.push('PROMISE: ' + String(e.reason && e.reason.message || e.reason)));
+  </script>
+  <script type="importmap">
+    { "imports": { "three": "/node_modules/three/build/three.module.js" } }
+  </script>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
