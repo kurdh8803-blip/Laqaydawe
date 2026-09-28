@@ -1,7 +1,7 @@
 /**
  * 牛来格斗 - LAN 服务器
- * ئەرک: خزمەتکردنی فایلە ستاتیکەکان + پەیوەستکردنی ژوورەکانی WebSocket + گواستنەوەی پەیامەکان
- * دەستپێکردن: node server.js （پۆرتی بنەڕەت 3000 ـە، دەتوانرێت بە PORT=xx بگۆڕدرێت）
+ * 职责：静态文件服务 + WebSocket 房间配对 + 消息中继
+ * 启动：node server.js  （默认端口 3000，可用 PORT=xx 覆盖）
  */
 import http from 'node:http';
 import fs from 'node:fs';
@@ -26,7 +26,7 @@ const server = http.createServer((req, res) => {
   const u = new URL(req.url || '/', 'http://x');
   let urlPath = decodeURIComponent(u.pathname);
 
-  // یارمەتیدەری گەشەپێدان: وەرگرتنی وێنەی شاشەی ڕەندەرکراوی پەڕە (تەنها بۆ پشکنینی ناوخۆیی)
+  // 开发辅助：接收页面渲染帧截图（仅本地验证用）
   if (req.method === 'POST' && urlPath === '/__shot') {
     const chunks = [];
     req.on('data', (c) => chunks.push(c));
@@ -56,7 +56,7 @@ const server = http.createServer((req, res) => {
   });
 });
 
-// ---------- بەستەرکردنی ژوور و گواستنەوە ----------
+// ---------- 房间配对与中继 ----------
 const wss = new WebSocketServer({ server });
 /** room = { id, host: ws, guest: ws } */
 const rooms = new Map();
@@ -73,7 +73,7 @@ wss.on('connection', (ws) => {
 
     switch (msg.type) {
       case 'join': {
-        // بەشداری لە ژوورێکی چاوەڕوانکراو، ئەگەر نەبوو ژوورێکی نوێ دروست دەکرێت
+        // 加入等待中的房间，否则新建
         let target = null;
         for (const r of rooms.values()) if (!r.guest && r.host !== ws) { target = r; break; }
         if (!target) {
@@ -90,19 +90,19 @@ wss.on('connection', (ws) => {
         ws.__room = target;
         break;
       }
-      case 'pick':   // جوڵاندنی نیشاندەر {char}
+      case 'pick':   // 光标移动 {char}
         if (room) broadcast(room, { type: 'pick', from: ws === room.host ? 'host' : 'guest', char: msg.char });
         break;
-      case 'ready':  // پشتڕاستکردنەوەی ئامادەبوون بۆ دەرچوون
+      case 'ready':  // 确认出场
         if (room) broadcast(room, { type: 'ready', from: ws === room.host ? 'host' : 'guest', char: msg.char });
         break;
-      case 'input':  // کڵایەنت → ماڵەوە: دۆخی داخڵکردن
+      case 'input':  // 客户端 → 主机：输入状态
         if (room && ws === room.guest) send(room.host, { type: 'input', keys: msg.keys });
         break;
-      case 'state':  // ماڵەوە → کڵایەنت: وێنەی دۆخی دەسەڵاتدار
+      case 'state':  // 主机 → 客户端：权威状态快照
         if (room && ws === room.host) send(room.guest, { type: 'state', ...msg.data });
         break;
-      case 'cmd':    // فەرمانی دوولایەنە (دەستپێکردن/دووبارەکردنەوە و هتد) — هەموو خانەکان ڕاستەوخۆ دەگوازرێنەوە
+      case 'cmd':    // 双向命令（开始/重赛等）—— 透传全部字段
         if (room) {
           const to = ws === room.host ? room.guest : room.host;
           const { type: _t, ...rest } = msg;
@@ -129,8 +129,8 @@ server.listen(PORT, () => {
     if (ni.family === 'IPv4' && !ni.internal) ips.push(ni.address);
   }
   console.log('==========================================');
-  console.log('  牛来格斗 · سێرڤەر دەستی پێکرد');
-  console.log(`  یاریی ناوخۆیی:   http://localhost:${PORT}`);
-  for (const ip of ips) console.log(`  یاری لە تۆڕی ناوخۆیی: http://${ip}:${PORT}`);
+  console.log('  牛来格斗 · 服务器已启动');
+  console.log(`  本机游玩:   http://localhost:${PORT}`);
+  for (const ip of ips) console.log(`  局域网对战: http://${ip}:${PORT}`);
   console.log('==========================================');
 });
